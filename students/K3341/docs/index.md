@@ -15,10 +15,10 @@
 
 Переход к отчетам осуществляется через **боковое меню** или по ссылкам ниже:
 
-* [ЛР 1. Сокеты](report_lab_1.md)
-* [ЛР 2. Django (CRUD)](report_lab_2.md)
-* [ЛР 3. Django REST & API](report_lab_3.md)
-* [ЛР 4. Vue.js (Frontend)](report_lab_4.md)
+* [ЛР 1. Сокеты](lab1.md)
+* [ЛР 2. Django (CRUD)](lab2.md)
+* [ЛР 3. Django REST & API](lab3.md)
+* [ЛР 4. Vue.js (Frontend)](lab4.md)
 
 ---
 
