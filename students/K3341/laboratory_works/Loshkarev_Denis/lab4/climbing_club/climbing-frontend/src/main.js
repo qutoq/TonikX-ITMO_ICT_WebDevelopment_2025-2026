@@ -12,3 +12,5 @@ app.use(vuetify)
 
 app.mount('#app')
 
+window.addEventListener('error', (e) => console.error('Global error:', e.error || e.message))
+window.addEventListener('unhandledrejection', (e) => console.error('Unhandled promise:', e.reason))

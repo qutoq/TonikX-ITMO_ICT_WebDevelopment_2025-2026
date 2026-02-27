@@ -4,6 +4,7 @@ from .views import *
 urlpatterns = [
     path('alpinists/', AlpinistListCreateView.as_view()),
     path('mountains/', MountainListCreateView.as_view()),
+    path('clubs/', ClubListCreateView.as_view()),
     
     path('query/alpinists-by-date/', AlpinistsInDateRangeView.as_view()),
     path('query/mountain-stats/', MountainStatsView.as_view()),

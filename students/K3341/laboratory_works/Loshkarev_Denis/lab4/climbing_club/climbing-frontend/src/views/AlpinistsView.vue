@@ -3,14 +3,14 @@
     <v-card class="panel-card" rounded="xl" elevation="8">
       <v-card-title class="py-3 d-flex align-center justify-space-between flex-wrap ga-2">
         <div>
-          <div class="text-h5 font-weight-medium">Вершины</div>
+          <div class="text-h5 font-weight-medium">Альпинисты</div>
           <div class="panel-subtitle">Справочник</div>
         </div>
 
         <div class="d-flex align-center ga-2 flex-wrap">
           <v-text-field
             v-model.trim="search"
-            label="Поиск"
+            label="Поиск (по текущей странице)"
             variant="outlined"
             density="comfortable"
             hide-details
@@ -18,26 +18,7 @@
             class="search-field"
           />
 
-          <v-select
-            v-model="ordering"
-            :items="orderingItems"
-            item-title="title"
-            item-value="value"
-            label="Сортировка"
-            variant="outlined"
-            density="comfortable"
-            hide-details
-            class="ordering-field"
-            :disabled="loading"
-            @update:model-value="onOrderingChange"
-          />
-
-          <v-btn
-            color="black"
-            class="text-none"
-            size="large"
-            @click="openCreateDialog"
-          >
+          <v-btn color="black" class="text-none" size="large" @click="openCreateDialog">
             Добавить
           </v-btn>
         </div>
@@ -51,26 +32,22 @@
             <thead>
               <tr>
                 <th style="width: 80px">ID</th>
-                <th>Название</th>
-                <th style="width: 140px">Высота</th>
-                <th style="width: 220px">Страна</th>
-                <th style="width: 220px">Район</th>
+                <th>ФИО</th>
+                <th>Адрес</th>
+                <th style="width: 220px">Клуб</th>
               </tr>
             </thead>
 
             <tbody>
-              <tr v-for="m in mountains" :key="m.id">
-                <td class="text-grey-darken-1">{{ m.id }}</td>
-                <td class="font-weight-medium">{{ m.name }}</td>
-                <td>{{ m.height }} м</td>
-                <td>{{ m.country }}</td>
-                <td>{{ m.region }}</td>
+              <tr v-for="a in filteredAlpinists" :key="a.id">
+                <td class="text-grey-darken-1">{{ a.id }}</td>
+                <td class="font-weight-medium">{{ a.name }}</td>
+                <td class="text-truncate" style="max-width: 520px">{{ a.address }}</td>
+                <td>{{ a.club_name || '—' }}</td>
               </tr>
 
-              <tr v-if="!loading && mountains.length === 0">
-                <td colspan="5" class="text-center py-8 text-grey-darken-1">
-                  Пусто
-                </td>
+              <tr v-if="!loading && filteredAlpinists.length === 0">
+                <td colspan="4" class="text-center py-8 text-grey-darken-1">Пусто</td>
               </tr>
             </tbody>
           </v-table>
@@ -88,7 +65,7 @@
             :length="totalPages"
             :total-visible="7"
             density="comfortable"
-            @update:model-value="fetchMountains"
+            @update:model-value="fetchAlpinists"
           />
         </div>
       </v-card-text>
@@ -98,54 +75,43 @@
     <v-dialog v-model="createDialog" max-width="560">
       <v-card class="dialog-card" rounded="xl" elevation="10">
         <v-card-title class="py-3 d-flex align-center justify-space-between">
-          <div class="text-h6 font-weight-medium">Добавить вершину</div>
+          <div class="text-h6 font-weight-medium">Добавить альпиниста</div>
           <v-btn icon="mdi-close" variant="text" @click="createDialog = false" />
         </v-card-title>
 
         <v-card-text class="pt-2">
-          <v-alert
-            v-if="createError"
-            type="error"
-            variant="tonal"
-            class="mb-4"
-            :text="createError"
-          />
+          <v-alert v-if="createError" type="error" variant="tonal" class="mb-4" :text="createError" />
 
-          <v-form @submit.prevent="createMountain">
+          <v-form @submit.prevent="createAlpinist">
             <v-text-field
               v-model.trim="form.name"
-              label="Название"
+              label="ФИО"
               variant="outlined"
               density="comfortable"
               :disabled="createLoading"
               class="mb-3"
+              required
             />
 
             <v-text-field
-              v-model.number="form.height"
-              label="Высота (м)"
+              v-model.trim="form.address"
+              label="Адрес"
+              variant="outlined"
+              density="comfortable"
+              :disabled="createLoading"
+              class="mb-3"
+              required
+            />
+
+            <v-text-field
+              v-model.number="form.club"
+              label="ID клуба (необязательно)"
               type="number"
               variant="outlined"
               density="comfortable"
               :disabled="createLoading"
-              class="mb-3"
-            />
-
-            <v-text-field
-              v-model.trim="form.country"
-              label="Страна"
-              variant="outlined"
-              density="comfortable"
-              :disabled="createLoading"
-              class="mb-3"
-            />
-
-            <v-text-field
-              v-model.trim="form.region"
-              label="Район"
-              variant="outlined"
-              density="comfortable"
-              :disabled="createLoading"
+              hint="Если не знаешь ID — оставь пустым"
+              persistent-hint
             />
 
             <v-btn
@@ -184,26 +150,31 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import api from '../api'
 
-const mountains = ref([])
+const alpinists = ref([])
 const loading = ref(false)
 
 const search = ref('')
-const ordering = ref('id')
-
 const page = ref(1)
-const pageSize = ref(10) // соответствует PAGE_SIZE в Django
+const pageSize = ref(10)
 const totalCount = ref(0)
 
-const orderingItems = [
-  { title: 'ID', value: 'id' },
-  { title: 'Название', value: 'name' },
-  { title: 'Высота', value: 'height' },
-  { title: 'Страна', value: 'country' },
-  { title: 'Район', value: 'region' },
-]
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / pageSize.value)))
+
+const filteredAlpinists = computed(() => {
+  const q = (search.value || '').toLowerCase()
+  if (!q) return alpinists.value
+  return alpinists.value.filter((a) => {
+    return (
+      String(a.id).includes(q) ||
+      (a.name || '').toLowerCase().includes(q) ||
+      (a.address || '').toLowerCase().includes(q) ||
+      (a.club_name || '').toLowerCase().includes(q)
+    )
+  })
+})
 
 const createDialog = ref(false)
 const createLoading = ref(false)
@@ -211,9 +182,8 @@ const createError = ref('')
 
 const form = reactive({
   name: '',
-  height: null,
-  country: '',
-  region: '',
+  address: '',
+  club: null,
 })
 
 const snackbar = reactive({
@@ -221,103 +191,74 @@ const snackbar = reactive({
   text: '',
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / pageSize.value)))
-
 const canSubmit = computed(() => {
-  return (
-    form.name &&
-    form.country &&
-    form.region &&
-    Number.isFinite(Number(form.height)) &&
-    Number(form.height) > 0
-  )
+  return form.name.trim().length > 0 && form.address.trim().length > 0
 })
-
-function resetForm() {
-  form.name = ''
-  form.height = null
-  form.country = ''
-  form.region = ''
-}
 
 function openCreateDialog() {
   createError.value = ''
-  resetForm()
+  form.name = ''
+  form.address = ''
+  form.club = null
   createDialog.value = true
 }
 
-function onOrderingChange() {
-  page.value = 1
-  fetchMountains()
-}
-
-async function fetchMountains() {
+async function fetchAlpinists() {
   loading.value = true
   try {
-    const resp = await api.get('api/mountains/', {
-      params: {
-        ordering: ordering.value,
-        page: page.value,
-        // серверный поиск (по всей таблице) — работает только если на backend добавлен SearchFilter
-        search: search.value ? search.value : undefined,
-      },
-    })
-
-    mountains.value = resp.data?.results || []
-    totalCount.value = resp.data?.count ?? mountains.value.length
+    const resp = await api.get('api/alpinists/', { params: { page: page.value } })
+    // в проекте пагинация включена глобально
+    alpinists.value = resp.data?.results || []
+    totalCount.value = resp.data?.count ?? alpinists.value.length
   } catch (e) {
     console.error(e)
-    snackbar.text = 'Не удалось загрузить вершины'
+    snackbar.text = 'Не удалось загрузить альпинистов'
     snackbar.show = true
   } finally {
     loading.value = false
   }
 }
 
-// debounce на ввод поиска
-let searchTimer = null
-watch(search, () => {
-  page.value = 1
-  if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => {
-    fetchMountains()
-  }, 350)
-})
+function formatErr(e) {
+  const d = e?.response?.data
+  if (!d) return 'Ошибка запроса'
+  if (typeof d === 'string') return d
+  if (typeof d === 'object') {
+    return Object.entries(d)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
+      .join(' | ')
+  }
+  return 'Ошибка'
+}
 
-async function createMountain() {
+async function createAlpinist() {
   createError.value = ''
   if (!canSubmit.value) return
 
   createLoading.value = true
   try {
-    await api.post('api/mountains/', {
+    const payload = {
       name: form.name,
-      height: Number(form.height),
-      country: form.country,
-      region: form.region,
-    })
+      address: form.address,
+      club: form.club ? Number(form.club) : null,
+    }
+    await api.post('api/alpinists/', payload)
 
     createDialog.value = false
-    snackbar.text = 'Вершина добавлена'
+    snackbar.text = 'Альпинист добавлен'
     snackbar.show = true
 
     page.value = 1
-    await fetchMountains()
+    await fetchAlpinists()
   } catch (e) {
     console.error(e)
-    const data = e?.response?.data
-    createError.value =
-      data && typeof data === 'object'
-        ? Object.entries(data)
-            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
-            .join(' | ')
-        : 'Ошибка сохранения'
+    createError.value = formatErr(e)
   } finally {
     createLoading.value = false
   }
 }
 
-onMounted(fetchMountains)
+onMounted(fetchAlpinists)
 </script>
 
 <style scoped>
@@ -344,27 +285,16 @@ onMounted(fetchMountains)
 }
 
 .search-field {
-  width: 260px;
-  max-width: 60vw;
-}
-
-.ordering-field {
-  width: 220px;
-  max-width: 60vw;
+  width: 320px;
+  max-width: 70vw;
 }
 
 .table-wrap {
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-th {
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.7);
-}
-
-/* диалог тоже "стеклянный" */
 .dialog-card {
   backdrop-filter: blur(6px);
   background-color: rgba(255, 255, 255, 0.94);

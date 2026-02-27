@@ -3,22 +3,33 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from rest_framework.filters import OrderingFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from django.db.models import Count, Q
-from .models import Alpinist, Mountain, Climb, Participation
-from .serializers import AlpinistSerializer, MountainSerializer, ClimbSerializer, ClimbCreateSerializer
+from .models import Alpinist, Mountain, Climb, Participation, Club
+from .serializers import AlpinistSerializer, MountainSerializer, ClimbSerializer
+from .serializers import ClubSerializer, ClimbCreateSerializer
 
 
 class AlpinistListCreateView(generics.ListCreateAPIView):
     queryset = Alpinist.objects.all()
     serializer_class = AlpinistSerializer
 
+
 class MountainListCreateView(generics.ListCreateAPIView):
     queryset = Mountain.objects.all()
     serializer_class = MountainSerializer
-    permission_classes = [IsAuthenticated] 
-    filter_backends = [OrderingFilter]
+    permission_classes = [IsAuthenticated]
+
+    filter_backends = [OrderingFilter, SearchFilter]
     ordering_fields = ['id', 'name', 'height', 'country', 'region']
+
+    search_fields = ['name', 'country', 'region']
+
+
+class ClubListCreateView(generics.ListCreateAPIView):
+    queryset = Club.objects.all()
+    serializer_class = ClubSerializer
+    permission_classes = [IsAuthenticated]
 
 
 # 1. Список альпинистов, осуществлявших восхождение в интервал дат
