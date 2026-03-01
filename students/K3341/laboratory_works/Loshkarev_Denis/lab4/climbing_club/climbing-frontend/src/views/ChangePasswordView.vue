@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page--center">
     <v-card class="panel-card" rounded="xl" elevation="8">
       <v-card-title class="py-3">
         <div class="text-h5 font-weight-medium">Смена пароля</div>
@@ -79,14 +79,12 @@ const showCurrent = ref(false)
 const showNew = ref(false)
 const showReNew = ref(false)
 
-const canSubmit = computed(() => {
-  return (
-    current_password.value &&
-    new_password.value &&
-    re_new_password.value &&
-    new_password.value === re_new_password.value
-  )
-})
+const canSubmit = computed(() =>
+  current_password.value &&
+  new_password.value &&
+  re_new_password.value &&
+  new_password.value === re_new_password.value
+)
 
 function formatErr(e) {
   const d = e?.response?.data
@@ -110,39 +108,14 @@ async function submit() {
       new_password: new_password.value,
       re_new_password: re_new_password.value,
     })
-    ok.value = 'Пароль изменён'
+    ok.value = 'Пароль успешно изменён'
     current_password.value = ''
     new_password.value = ''
     re_new_password.value = ''
   } catch (e) {
-    console.error(e)
     error.value = formatErr(e)
   } finally {
     loading.value = false
   }
 }
 </script>
-
-<style scoped>
-.page {
-  height: 100%;
-  min-height: calc(100vh - 64px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.panel-card {
-  width: 100%;
-  max-width: 520px;
-  padding: 20px;
-  backdrop-filter: blur(6px);
-  background-color: rgba(255, 255, 255, 0.92);
-}
-
-.panel-subtitle {
-  font-size: 14px;
-  margin-top: 2px;
-  color: rgba(0, 0, 0, 0.6);
-}
-</style>

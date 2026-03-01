@@ -94,7 +94,6 @@
       </v-card-text>
     </v-card>
 
-    <!-- Create dialog -->
     <v-dialog v-model="createDialog" max-width="560">
       <v-card class="dialog-card" rounded="xl" elevation="10">
         <v-card-title class="py-3 d-flex align-center justify-space-between">
@@ -194,7 +193,7 @@ const search = ref('')
 const ordering = ref('id')
 
 const page = ref(1)
-const pageSize = ref(10) // соответствует PAGE_SIZE в Django
+const pageSize = ref(10)
 const totalCount = ref(0)
 
 const orderingItems = [
@@ -258,7 +257,6 @@ async function fetchMountains() {
       params: {
         ordering: ordering.value,
         page: page.value,
-        // серверный поиск (по всей таблице) — работает только если на backend добавлен SearchFilter
         search: search.value ? search.value : undefined,
       },
     })
@@ -274,7 +272,6 @@ async function fetchMountains() {
   }
 }
 
-// debounce на ввод поиска
 let searchTimer = null
 watch(search, () => {
   page.value = 1
@@ -319,54 +316,3 @@ async function createMountain() {
 
 onMounted(fetchMountains)
 </script>
-
-<style scoped>
-.page {
-  height: 100%;
-  min-height: calc(100vh - 64px);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.panel-card {
-  width: 100%;
-  max-width: 1200px;
-  padding: 10px;
-  backdrop-filter: blur(6px);
-  background-color: rgba(255, 255, 255, 0.92);
-}
-
-.panel-subtitle {
-  font-size: 14px;
-  margin-top: 2px;
-  color: rgba(0, 0, 0, 0.6);
-}
-
-.search-field {
-  width: 260px;
-  max-width: 60vw;
-}
-
-.ordering-field {
-  width: 220px;
-  max-width: 60vw;
-}
-
-.table-wrap {
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.06);
-}
-
-th {
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.7);
-}
-
-/* диалог тоже "стеклянный" */
-.dialog-card {
-  backdrop-filter: blur(6px);
-  background-color: rgba(255, 255, 255, 0.94);
-}
-</style>

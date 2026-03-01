@@ -20,22 +20,16 @@
 
       <template v-if="isAuthed">
         <div class="nav-block">
-          <v-btn variant="text" class="text-none" :to="{ name: 'mountains' }">
-            Вершины
-          </v-btn>
-
-          <v-btn variant="text" class="text-none" :to="{ name: 'clubs' }">
-            Клубы
-          </v-btn>
-
-          <v-btn variant="text" class="text-none" :to="{ name: 'alpinists' }">
-            Альпинисты
-          </v-btn>
+          <v-btn variant="text" class="text-none" :to="{ name: 'mountains' }">Вершины</v-btn>
+          <v-btn variant="text" class="text-none" :to="{ name: 'routes' }">Маршруты</v-btn>
+          <v-btn variant="text" class="text-none" :to="{ name: 'clubs' }">Клубы</v-btn>
+          <v-btn variant="text" class="text-none" :to="{ name: 'alpinists' }">Альпинисты</v-btn>
+          <v-btn variant="text" class="text-none" :to="{ name: 'climbs' }">Восхождения</v-btn>
+          <v-btn variant="text" class="text-none" :to="{ name: 'reports' }">Отчёты</v-btn>
         </div>
 
         <v-divider vertical class="mx-3" />
 
-        <!-- Auth-блок -->
         <div class="auth-block">
           <v-btn
             variant="text"
@@ -89,37 +83,3 @@ function onLogout() {
   router.push({ name: 'login' })
 }
 </script>
-
-<style>
-html,
-body {
-  margin: 0;
-  background: #f6f7fb;
-}
-
-.app-root {
-  background: #f6f7fb;
-}
-
-.app-main {
-  background: #f6f7fb;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-}
-
-.brand-logo {
-  font-weight: 800;
-  letter-spacing: 0.2px;
-  padding: 0 8px;
-}
-
-.nav-block,
-.auth-block {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-</style>

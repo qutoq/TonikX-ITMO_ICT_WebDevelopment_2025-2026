@@ -3,7 +3,6 @@
     <v-card class="panel-card" rounded="xl" elevation="8">
       <v-card-title class="py-3">
         <div class="text-h5 font-weight-medium">Создать восхождение</div>
-        <div class="panel-subtitle">POST /api/climbs/create/</div>
       </v-card-title>
 
       <v-card-text class="pt-2">
@@ -13,15 +12,18 @@
         <v-form @submit.prevent="submit">
           <v-row>
             <v-col cols="12" md="6">
-              <v-text-field
-                v-model.number="form.route"
-                label="ID маршрута (route)"
-                type="number"
+              <v-autocomplete
+                v-model="form.route"
+                :items="routes"
+                item-title="label"
+                item-value="id"
+                label="Маршрут"
                 variant="outlined"
                 density="comfortable"
+                :loading="loadingRoutes"
                 :disabled="loading"
-                hint="Пока вводится вручную (routes не выведены отдельной страницей)"
-                persistent-hint
+                no-data-text="Нет маршрутов"
+                clearable
               />
             </v-col>
 
@@ -88,7 +90,7 @@
             <v-col cols="12">
               <v-textarea
                 v-model.trim="form.group_notes"
-                label="Пояснение по группе / нештатные ситуации"
+                label="Пояснение / нештатные ситуации"
                 variant="outlined"
                 density="comfortable"
                 :disabled="loading"
@@ -97,81 +99,82 @@
             </v-col>
           </v-row>
 
-          <v-divider class="my-4" />
+          <div class="section-title mt-2">Участники</div>
 
-          <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
-            <div class="text-subtitle-1 font-weight-medium">Участники</div>
-            <v-btn variant="outlined" class="text-none" :disabled="loading" @click="addParticipant">
-              Добавить участника
-            </v-btn>
+          <div
+            v-for="(p, idx) in form.participants_data"
+            :key="idx"
+            class="participant-row"
+          >
+            <v-row align="center">
+              <v-col cols="12" md="4">
+                <v-autocomplete
+                  v-model="p.alpinist"
+                  :items="alpinists"
+                  item-title="name"
+                  item-value="id"
+                  label="Альпинист"
+                  variant="outlined"
+                  density="comfortable"
+                  :loading="loadingAlpinists"
+                  :disabled="loading"
+                  no-data-text="Не найдено"
+                  clearable
+                  auto-select-first
+                />
+              </v-col>
+
+              <v-col cols="12" md="3">
+                <v-select
+                  v-model="p.status"
+                  :items="statusItems"
+                  item-title="title"
+                  item-value="value"
+                  label="Статус"
+                  variant="outlined"
+                  density="comfortable"
+                  :disabled="loading"
+                />
+              </v-col>
+
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model.trim="p.incident_details"
+                  label="Детали (опц.)"
+                  variant="outlined"
+                  density="comfortable"
+                  :disabled="loading"
+                />
+              </v-col>
+
+              <v-col cols="12" md="1" class="d-flex justify-center">
+                <v-btn
+                  icon="mdi-delete-outline"
+                  variant="text"
+                  color="red-darken-1"
+                  @click="removeParticipant(idx)"
+                />
+              </v-col>
+            </v-row>
           </div>
 
-          <v-alert
-            v-if="participants.length === 0"
-            type="info"
-            variant="tonal"
-            class="mb-3"
-            text="Добавь хотя бы одного участника (participants_data)."
-          />
+          <v-btn
+            variant="outlined"
+            class="text-none mt-1 mb-4"
+            prepend-icon="mdi-plus"
+            @click="addParticipant"
+            :disabled="loading"
+          >
+            Добавить участника
+          </v-btn>
 
-          <v-row v-for="(p, idx) in participants" :key="idx" class="mb-1">
-            <v-col cols="12" md="3">
-              <v-text-field
-                v-model.number="p.alpinist"
-                label="ID альпиниста"
-                type="number"
-                variant="outlined"
-                density="comfortable"
-                :disabled="loading"
-              />
-            </v-col>
-
-            <v-col cols="12" md="2">
-              <v-switch
-                v-model="p.is_success"
-                color="black"
-                inset
-                :disabled="loading"
-                label="Успех"
-              />
-            </v-col>
-
-            <v-col cols="12" md="3">
-              <v-select
-                v-model="p.status"
-                :items="statusItems"
-                label="Статус"
-                variant="outlined"
-                density="comfortable"
-                :disabled="loading"
-              />
-            </v-col>
-
-            <v-col cols="12" md="3">
-              <v-text-field
-                v-model.trim="p.incident_details"
-                label="Подробности"
-                variant="outlined"
-                density="comfortable"
-                :disabled="loading"
-              />
-            </v-col>
-
-            <v-col cols="12" md="1" class="d-flex align-center justify-end">
-              <v-btn
-                icon="mdi-delete"
-                variant="text"
-                :disabled="loading"
-                @click="removeParticipant(idx)"
-              />
-            </v-col>
-          </v-row>
+          <v-divider class="mb-4" />
 
           <v-btn
             type="submit"
             block
             color="black"
-            class="mt-5 text-none"
+            class="text-none"
             size="large"
             :loading="loading"
             :disabled="!canSubmit"
@@ -185,14 +188,29 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api'
 
+const router = useRouter()
+
 const loading = ref(false)
+const loadingRoutes = ref(false)
+const loadingAlpinists = ref(false)
 const error = ref('')
 const ok = ref('')
 
-const statusItems = ['success', 'failed', 'injury', 'missing', 'fatal', 'other']
+const routes = ref([])
+const alpinists = ref([])
+
+const statusItems = [
+  { title: 'Успешно', value: 'success' },
+  { title: 'Не успешно', value: 'failed' },
+  { title: 'Травма', value: 'injury' },
+  { title: 'Пропал без вести', value: 'missing' },
+  { title: 'Летальный исход', value: 'fatal' },
+  { title: 'Другое', value: 'other' },
+]
 
 const form = ref({
   route: null,
@@ -203,12 +221,18 @@ const form = ref({
   end_actual: '',
   is_group_success: false,
   group_notes: '',
+  participants_data: [],
 })
 
-const participants = ref([])
+const canSubmit = computed(() =>
+  form.value.route &&
+  form.value.group_name &&
+  form.value.start_planned &&
+  form.value.end_planned
+)
 
 function addParticipant() {
-  participants.value.push({
+  form.value.participants_data.push({
     alpinist: null,
     is_success: false,
     status: 'success',
@@ -217,19 +241,38 @@ function addParticipant() {
 }
 
 function removeParticipant(idx) {
-  participants.value.splice(idx, 1)
+  form.value.participants_data.splice(idx, 1)
 }
 
-const canSubmit = computed(() => {
-  return (
-    Number.isFinite(Number(form.value.route)) &&
-    form.value.group_name.trim().length > 0 &&
-    form.value.start_planned.trim().length > 0 &&
-    form.value.end_planned.trim().length > 0 &&
-    participants.value.length > 0 &&
-    participants.value.every((p) => Number.isFinite(Number(p.alpinist)))
-  )
-})
+async function fetchRoutes() {
+  loadingRoutes.value = true
+  try {
+    const res = await api.get('api/routes/?page_size=all')
+    const data = res.data
+    const items = Array.isArray(data) ? data : (data.results ?? [])
+    routes.value = items.map(r => ({
+      ...r,
+      label: `${r.mountain_name} — ${r.description}`,
+    }))
+  } catch (e) {
+    console.error('Не удалось загрузить маршруты', e)
+  } finally {
+    loadingRoutes.value = false
+  }
+}
+
+async function fetchAlpinists() {
+  loadingAlpinists.value = true
+  try {
+    const res = await api.get('api/alpinists/?page_size=all')
+    const data = res.data
+    alpinists.value = Array.isArray(data) ? data : (data.results ?? [])
+  } catch (e) {
+    console.error('Не удалось загрузить альпинистов', e)
+  } finally {
+    loadingAlpinists.value = false
+  }
+}
 
 function formatErr(e) {
   const d = e?.response?.data
@@ -243,81 +286,35 @@ function formatErr(e) {
   return 'Ошибка'
 }
 
-function normalizeDateTime(s) {
-  // DRF DateTimeField обычно принимает ISO: "YYYY-MM-DDTHH:MM[:SS]Z"
-  // Ты вводишь "YYYY-MM-DDTHH:MM" — это обычно проходит.
-  // Если пусто — вернем null (для optional)
-  return s && String(s).trim().length ? String(s).trim() : null
-}
-
 async function submit() {
   error.value = ''
   ok.value = ''
+  loading.value = true
 
-  if (!canSubmit.value) {
-    error.value = 'Заполни обязательные поля (route, group_name, start/end planned, participants)'
-    return
+  const payload = {
+    route: form.value.route,
+    group_name: form.value.group_name,
+    start_planned: form.value.start_planned,
+    end_planned: form.value.end_planned,
+    start_actual: form.value.start_actual || null,
+    end_actual: form.value.end_actual || null,
+    is_group_success: form.value.is_group_success,
+    group_notes: form.value.group_notes,
+    participants_data: form.value.participants_data.filter(p => p.alpinist),
   }
 
-  loading.value = true
   try {
-    const payload = {
-      route: Number(form.value.route),
-      group_name: form.value.group_name,
-      start_planned: normalizeDateTime(form.value.start_planned),
-      end_planned: normalizeDateTime(form.value.end_planned),
-      start_actual: normalizeDateTime(form.value.start_actual),
-      end_actual: normalizeDateTime(form.value.end_actual),
-      is_group_success: !!form.value.is_group_success,
-      group_notes: form.value.group_notes || '',
-      participants_data: participants.value.map((p) => ({
-        alpinist: Number(p.alpinist),
-        is_success: !!p.is_success,
-        status: p.status,
-        incident_details: p.incident_details || '',
-      })),
-    }
-
     await api.post('api/climbs/create/', payload)
-    ok.value = 'Восхождение создано'
-
-    // очистка
-    form.value.group_name = ''
-    form.value.group_notes = ''
-    participants.value = []
-    addParticipant()
+    router.push({ name: 'climbs' })
   } catch (e) {
-    console.error(e)
     error.value = formatErr(e)
   } finally {
     loading.value = false
   }
 }
 
-// чтобы не было пустой формы участников
-addParticipant()
+onMounted(() => {
+  fetchRoutes()
+  fetchAlpinists()
+})
 </script>
-
-<style scoped>
-.page {
-  height: 100%;
-  min-height: calc(100vh - 64px);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.panel-card {
-  width: 100%;
-  max-width: 1200px;
-  padding: 20px;
-  backdrop-filter: blur(6px);
-  background-color: rgba(255, 255, 255, 0.92);
-}
-
-.panel-subtitle {
-  font-size: 14px;
-  margin-top: 2px;
-  color: rgba(0, 0, 0, 0.6);
-}
-</style>

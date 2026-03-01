@@ -8,8 +8,8 @@ django.setup()
 
 from climbing_app.models import Club, Alpinist, Mountain, Route, Climb, Participation
 
+
 def run_import():
-    # Очистка базы перед импортом
     Participation.objects.all().delete()
     Climb.objects.all().delete()
     Route.objects.all().delete()
@@ -31,7 +31,8 @@ def run_import():
         reader = csv.DictReader(f)
         for row in reader:
             club = Club.objects.get(name=row['club_name'])
-            Alpinist.objects.create(name=row['name'], address=row['address'], club=club)
+            alp = Alpinist.objects.create(name=row['name'], address=row['address'])
+            alp.clubs.add(club)  # M2M — .add() вместо club=club
 
     with open('data/routes.csv', encoding='utf-8') as f:
         reader = csv.DictReader(f)
@@ -72,6 +73,7 @@ def run_import():
             )
 
     print("Данные успешно импортированы из CSV!")
+
 
 if __name__ == "__main__":
     run_import()

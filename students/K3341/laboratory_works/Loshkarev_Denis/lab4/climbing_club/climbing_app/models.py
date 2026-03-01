@@ -14,7 +14,12 @@ class Club(models.Model):
 class Alpinist(models.Model):
     name = models.CharField(max_length=150, verbose_name="ФИО")
     address = models.TextField(verbose_name="Адрес")
-    club = models.ForeignKey(Club, on_delete=models.SET_NULL, null=True, related_name="members")
+    clubs = models.ManyToManyField(
+        Club,
+        blank=True,
+        related_name="members",
+        verbose_name="Клубы",
+    )
 
     def __str__(self):
         return self.name
@@ -27,12 +32,11 @@ class Mountain(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.height}м)"
-    
+
     class Meta:
         ordering = ['id']
 
 class Route(models.Model):
-    """Описание маршрута"""
     mountain = models.ForeignKey(Mountain, on_delete=models.CASCADE, related_name="routes")
     description = models.TextField(verbose_name="Описание маршрута")
     expected_duration = models.DurationField(verbose_name="Продолжительность (план)")
@@ -42,16 +46,13 @@ class Route(models.Model):
 
 class Climb(models.Model):
     route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name="climbs")
-    
     start_planned = models.DateTimeField(verbose_name="Начало (план)")
     end_planned = models.DateTimeField(verbose_name="Завершение (план)")
     start_actual = models.DateTimeField(null=True, blank=True, verbose_name="Начало (факт)")
     end_actual = models.DateTimeField(null=True, blank=True, verbose_name="Завершение (факт)")
-    
     group_name = models.CharField(max_length=100, verbose_name="Название группы")
     is_group_success = models.BooleanField(default=False, verbose_name="Успех группы")
     group_notes = models.TextField(blank=True, verbose_name="Пояснение о группе (нештатные ситуации)")
-
     participants = models.ManyToManyField(Alpinist, through='Participation', related_name="climbs")
 
     def __str__(self):
@@ -66,10 +67,8 @@ class Participation(models.Model):
         ('fatal', 'Летальный исход'),
         ('other', 'Другое'),
     ]
-
     alpinist = models.ForeignKey(Alpinist, on_delete=models.CASCADE, related_name="participations")
     climb = models.ForeignKey(Climb, on_delete=models.CASCADE, related_name="details")
-    
     is_success = models.BooleanField(default=False, verbose_name="Успех участника")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='success', verbose_name="Состояние")
     incident_details = models.TextField(blank=True, verbose_name="Подробности нештатной ситуации")
