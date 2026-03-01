@@ -1,6 +1,6 @@
 <template>
   <v-app class="app-root">
-    <v-app-bar color="white" elevation="1" density="comfortable">
+    <v-app-bar color="white" elevation="1" density="comfortable" class="pr-2">
       <div class="brand">
         <div class="brand-logo">АльпКлуб</div>
       </div>
@@ -31,6 +31,11 @@
         <v-divider vertical class="mx-3" />
 
         <div class="auth-block">
+          <div class="d-flex align-center ga-1 text-body-2 text-grey-darken-2 px-2">
+            <v-icon icon="mdi-account-circle-outline" size="18" />
+            <span>{{ auth.username }}</span>
+          </div>
+
           <v-btn
             variant="text"
             class="text-none"

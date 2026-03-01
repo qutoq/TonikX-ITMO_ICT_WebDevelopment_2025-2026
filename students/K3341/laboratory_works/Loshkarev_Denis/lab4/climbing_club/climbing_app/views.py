@@ -65,16 +65,6 @@ class ClimbListView(generics.ListAPIView):
         ).prefetch_related(
             'details__alpinist'
         ).order_by('-id')
-    
-
-class RecentClimbsView(generics.ListAPIView):
-    serializer_class = ClimbSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return Climb.objects.select_related(
-            'route__mountain'
-        ).order_by('-id')[:10]
 
 
 @extend_schema(
